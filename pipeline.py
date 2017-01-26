@@ -19,9 +19,9 @@ class ContourPipeline:
         self.resize_image_output = None
 
         self.__hsv_threshold_input = self.resize_image_output
-        self.__hsv_threshold_hue = [50.17985611510791, 83.24232081911262]
-        self.__hsv_threshold_saturation = [155.93525179856115, 255.0]
-        self.__hsv_threshold_value = [169.69424460431657, 255.0]
+        self.__hsv_threshold_hue = [67.1290086574808, 144.2048876640324]
+        self.__hsv_threshold_saturation = [79.09909360647076, 255.0]
+        self.__hsv_threshold_value = [164.89198471731092, 255.0]
 
         self.hsv_threshold_output = None
 
@@ -83,7 +83,7 @@ class ContourPipeline:
         # Step Filter_Contours0:
         self.__filter_contours_contours = self.find_contours_output
         (self.filter_contours_output) = self.__filter_contours(self.__filter_contours_contours, self.__filter_contours_min_area, self.__filter_contours_min_perimeter, self.__filter_contours_min_width, self.__filter_contours_max_width, self.__filter_contours_min_height, self.__filter_contours_max_height, self.__filter_contours_solidity, self.__filter_contours_max_vertices, self.__filter_contours_min_vertices, self.__filter_contours_min_ratio, self.__filter_contours_max_ratio)
-        return self.filter_contours_output
+
 
     @staticmethod
     def __resize_image(input, width, height, interpolation):
