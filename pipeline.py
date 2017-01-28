@@ -13,15 +13,15 @@ class ContourPipeline:
         """
 
         self.__resize_image_width = 640.0
-        self.__resize_image_height = 480.0
+        self.__resize_image_height = 360.0
         self.__resize_image_interpolation = cv2.INTER_CUBIC
 
         self.resize_image_output = None
 
         self.__hsv_threshold_input = self.resize_image_output
-        self.__hsv_threshold_hue = [49.32325326179735, 82.7714405650563]
-        self.__hsv_threshold_saturation = [79.09909360647076, 255.0]
-        self.__hsv_threshold_value = [164.89198471731092, 255.0]
+        self.__hsv_threshold_hue = [56.6546762589928, 144.2048876640324]
+        self.__hsv_threshold_saturation = [89.43345323741006, 255.0]
+        self.__hsv_threshold_value = [151.3489208633094, 255.0]
 
         self.hsv_threshold_output = None
 
@@ -30,19 +30,19 @@ class ContourPipeline:
 
         self.mask_output = None
 
-        self.__blur_input = self.mask_output
-        self.__blur_type = BlurType.Bilateral_Filter
-        self.__blur_radius = 3.7735849056603774
-
-        self.blur_output = None
-
-        self.__desaturate_input = self.blur_output
+        self.__desaturate_input = self.mask_output
 
         self.desaturate_output = None
 
         self.__find_lines_input = self.desaturate_output
 
         self.find_lines_output = None
+
+        self.__filter_lines_lines = self.find_lines_output
+        self.__filter_lines_min_length = 10.0
+        self.__filter_lines_angle = [0.0, 360.0]
+
+        self.filter_lines_output = None
 
 
     def process(self, source0):
@@ -62,17 +62,17 @@ class ContourPipeline:
         self.__mask_mask = self.hsv_threshold_output
         (self.mask_output) = self.__mask(self.__mask_input, self.__mask_mask)
 
-        # Step Blur0:
-        self.__blur_input = self.mask_output
-        (self.blur_output) = self.__blur(self.__blur_input, self.__blur_type, self.__blur_radius)
-
         # Step Desaturate0:
-        self.__desaturate_input = self.blur_output
+        self.__desaturate_input = self.mask_output
         (self.desaturate_output) = self.__desaturate(self.__desaturate_input)
 
         # Step Find_Lines0:
         self.__find_lines_input = self.desaturate_output
         (self.find_lines_output) = self.__find_lines(self.__find_lines_input)
+
+        # Step Filter_Lines0:
+        self.__filter_lines_lines = self.find_lines_output
+        (self.filter_lines_output) = self.__filter_lines(self.__filter_lines_lines, self.__filter_lines_min_length, self.__filter_lines_angle)
 
 
     @staticmethod
@@ -112,28 +112,6 @@ class ContourPipeline:
             A three channel numpy.ndarray.
         """
         return cv2.bitwise_and(input, input, mask=mask)
-
-    @staticmethod
-    def __blur(src, type, radius):
-        """Softens an image using one of several filters.
-        Args:
-            src: The source mat (numpy.ndarray).
-            type: The blurType to perform represented as an int.
-            radius: The radius for the blur as a float.
-        Returns:
-            A numpy.ndarray that has been blurred.
-        """
-        if(type is BlurType.Box_Blur):
-            ksize = int(2 * round(radius) + 1)
-            return cv2.blur(src, (ksize, ksize))
-        elif(type is BlurType.Gaussian_Blur):
-            ksize = int(6 * round(radius) + 1)
-            return cv2.GaussianBlur(src, (ksize, ksize), round(radius))
-        elif(type is BlurType.Median_Filter):
-            ksize = int(2 * round(radius) + 1)
-            return cv2.medianBlur(src, ksize)
-        else:
-            return cv2.bilateralFilter(src, -1, round(radius), round(radius))
 
     @staticmethod
     def __desaturate(src):
@@ -188,6 +166,23 @@ class ContourPipeline:
                 output.append(tmp)
         return output
 
+    @staticmethod
+    def __filter_lines(inputs, min_length, angle):
+        """Filters out lines that do not meet certain criteria.
+        Args:
+            inputs: A list of Lines.
+            min_Lenght: The minimum lenght that will be kept.
+            angle: The minimum and maximum angles in degrees as a list of two numbers.
+        Returns:
+            A filtered list of Lines.
+        """
+        outputs = []
+        for line in inputs:
+            if (line.length() > min_length):
+                if ((line.angle() >= angle[0] and line.angle() <= angle[1]) or
+                        (line.angle() + 180.0 >= angle[0] and line.angle() + 180.0 <= angle[1])):
+                    outputs.append(line)
+        return outputs
 
-BlurType = Enum('BlurType', 'Box_Blur Gaussian_Blur Median_Filter Bilateral_Filter')
+
 
