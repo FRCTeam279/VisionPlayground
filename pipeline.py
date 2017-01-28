@@ -20,29 +20,34 @@ class ContourPipeline:
 
         self.__hsv_threshold_input = self.resize_image_output
         self.__hsv_threshold_hue = [56.6546762589928, 144.2048876640324]
-        self.__hsv_threshold_saturation = [89.43345323741006, 255.0]
-        self.__hsv_threshold_value = [151.3489208633094, 255.0]
+        self.__hsv_threshold_saturation = [94.01978417266187, 255.0]
+        self.__hsv_threshold_value = [112.85310734463278, 255.0]
 
         self.hsv_threshold_output = None
 
-        self.__mask_input = self.resize_image_output
-        self.__mask_mask = self.hsv_threshold_output
+        self.__find_contours_input = self.hsv_threshold_output
+        self.__find_contours_external_only = False
 
-        self.mask_output = None
+        self.find_contours_output = None
 
-        self.__desaturate_input = self.mask_output
+        self.__filter_contours_contours = self.find_contours_output
+        self.__filter_contours_min_area = 300.0
+        self.__filter_contours_min_perimeter = 0
+        self.__filter_contours_min_width = 0
+        self.__filter_contours_max_width = 1000
+        self.__filter_contours_min_height = 0
+        self.__filter_contours_max_height = 1000
+        self.__filter_contours_solidity = [0, 100]
+        self.__filter_contours_max_vertices = 30.0
+        self.__filter_contours_min_vertices = 0
+        self.__filter_contours_min_ratio = 0
+        self.__filter_contours_max_ratio = 1000
 
-        self.desaturate_output = None
+        self.filter_contours_output = None
 
-        self.__find_lines_input = self.desaturate_output
+        self.__convex_hulls_contours = self.filter_contours_output
 
-        self.find_lines_output = None
-
-        self.__filter_lines_lines = self.find_lines_output
-        self.__filter_lines_min_length = 10.0
-        self.__filter_lines_angle = [0.0, 360.0]
-
-        self.filter_lines_output = None
+        self.convex_hulls_output = None
 
 
     def process(self, source0):
@@ -57,22 +62,17 @@ class ContourPipeline:
         self.__hsv_threshold_input = self.resize_image_output
         (self.hsv_threshold_output) = self.__hsv_threshold(self.__hsv_threshold_input, self.__hsv_threshold_hue, self.__hsv_threshold_saturation, self.__hsv_threshold_value)
 
-        # Step Mask0:
-        self.__mask_input = self.resize_image_output
-        self.__mask_mask = self.hsv_threshold_output
-        (self.mask_output) = self.__mask(self.__mask_input, self.__mask_mask)
+        # Step Find_Contours0:
+        self.__find_contours_input = self.hsv_threshold_output
+        (self.find_contours_output) = self.__find_contours(self.__find_contours_input, self.__find_contours_external_only)
 
-        # Step Desaturate0:
-        self.__desaturate_input = self.mask_output
-        (self.desaturate_output) = self.__desaturate(self.__desaturate_input)
+        # Step Filter_Contours0:
+        self.__filter_contours_contours = self.find_contours_output
+        (self.filter_contours_output) = self.__filter_contours(self.__filter_contours_contours, self.__filter_contours_min_area, self.__filter_contours_min_perimeter, self.__filter_contours_min_width, self.__filter_contours_max_width, self.__filter_contours_min_height, self.__filter_contours_max_height, self.__filter_contours_solidity, self.__filter_contours_max_vertices, self.__filter_contours_min_vertices, self.__filter_contours_min_ratio, self.__filter_contours_max_ratio)
 
-        # Step Find_Lines0:
-        self.__find_lines_input = self.desaturate_output
-        (self.find_lines_output) = self.__find_lines(self.__find_lines_input)
-
-        # Step Filter_Lines0:
-        self.__filter_lines_lines = self.find_lines_output
-        (self.filter_lines_output) = self.__filter_lines(self.__filter_lines_lines, self.__filter_lines_min_length, self.__filter_lines_angle)
+        # Step Convex_Hulls0:
+        self.__convex_hulls_contours = self.filter_contours_output
+        (self.convex_hulls_output) = self.__convex_hulls(self.__convex_hulls_contours)
 
 
     @staticmethod
@@ -103,86 +103,79 @@ class ContourPipeline:
         return cv2.inRange(out, (hue[0], sat[0], val[0]),  (hue[1], sat[1], val[1]))
 
     @staticmethod
-    def __mask(input, mask):
-        """Filter out an area of an image using a binary mask.
-        Args:
-            input: A three channel numpy.ndarray.
-            mask: A black and white numpy.ndarray.
-        Returns:
-            A three channel numpy.ndarray.
-        """
-        return cv2.bitwise_and(input, input, mask=mask)
-
-    @staticmethod
-    def __desaturate(src):
-        """Converts a color image into shades of gray.
-        Args:
-            src: A color numpy.ndarray.
-        Returns:
-            A gray scale numpy.ndarray.
-        """
-        (a, b, channels) = src.shape
-        if(channels == 1):
-            return numpy.copy(src)
-        elif(channels == 3):
-            return cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
-        elif(channels == 4):
-        	return cv2.cvtColor(src, cv2.COLOR_BGRA2GRAY)
-        else:
-            raise Exception("Input to desaturate must have 1, 3 or 4 channels") 
-
-    class Line:
-
-        def __init__(self, x1, y1, x2, y2):
-            self.x1 = x1
-            self.y1 = y1
-            self.x2 = x2
-            self.y2 = y2
-
-        def length(self):
-            return numpy.sqrt(pow(self.x2 - self.x1, 2) + pow(self.y2 - self.y1, 2))
-
-        def angle(self):
-            return math.degrees(math.atan2(self.y2 - self.y1, self.x2 - self.x1))
-    @staticmethod
-    def __find_lines(input):
-        """Finds all line segments in an image.
+    def __find_contours(input, external_only):
+        """Sets the values of pixels in a binary image to their distance to the nearest black pixel.
         Args:
             input: A numpy.ndarray.
-        Returns:
-            A filtered list of Lines.
+            external_only: A boolean. If true only external contours are found.
+        Return:
+            A list of numpy.ndarray where each one represents a contour.
         """
-        detector = cv2.createLineSegmentDetector()
-        if (len(input.shape) == 2 or input.shape[2] == 1):
-            lines = detector.detect(input)
+        if(external_only):
+            mode = cv2.RETR_EXTERNAL
         else:
-            tmp = cv2.cvtColor(input, cv2.COLOR_BGR2GRAY)
-            lines = detector.detect(tmp)
+            mode = cv2.RETR_LIST
+        method = cv2.CHAIN_APPROX_SIMPLE
+        im2, contours, hierarchy =cv2.findContours(input, mode=mode, method=method)
+        return contours
+
+    @staticmethod
+    def __filter_contours(input_contours, min_area, min_perimeter, min_width, max_width,
+                        min_height, max_height, solidity, max_vertex_count, min_vertex_count,
+                        min_ratio, max_ratio):
+        """Filters out contours that do not meet certain criteria.
+        Args:
+            input_contours: Contours as a list of numpy.ndarray.
+            min_area: The minimum area of a contour that will be kept.
+            min_perimeter: The minimum perimeter of a contour that will be kept.
+            min_width: Minimum width of a contour.
+            max_width: MaxWidth maximum width.
+            min_height: Minimum height.
+            max_height: Maximimum height.
+            solidity: The minimum and maximum solidity of a contour.
+            min_vertex_count: Minimum vertex Count of the contours.
+            max_vertex_count: Maximum vertex Count.
+            min_ratio: Minimum ratio of width to height.
+            max_ratio: Maximum ratio of width to height.
+        Returns:
+            Contours as a list of numpy.ndarray.
+        """
         output = []
-        if len(lines) != 0:
-            for i in range(1, len(lines[0])):
-                tmp = ContourPipeline.Line(lines[0][i, 0][0], lines[0][i, 0][1],
-                                lines[0][i, 0][2], lines[0][i, 0][3])
-                output.append(tmp)
+        for contour in input_contours:
+            x,y,w,h = cv2.boundingRect(contour)
+            if (w < min_width or w > max_width):
+                continue
+            if (h < min_height or h > max_height):
+                continue
+            area = cv2.contourArea(contour)
+            if (area < min_area):
+                continue
+            if (cv2.arcLength(contour, True) < min_perimeter):
+                continue
+            hull = cv2.convexHull(contour)
+            solid = 100 * area / cv2.contourArea(hull)
+            if (solid < solidity[0] or solid > solidity[1]):
+                continue
+            if (len(contour) < min_vertex_count or len(contour) > max_vertex_count):
+                continue
+            ratio = (float)(w) / h
+            if (ratio < min_ratio or ratio > max_ratio):
+                continue
+            output.append(contour)
         return output
 
     @staticmethod
-    def __filter_lines(inputs, min_length, angle):
-        """Filters out lines that do not meet certain criteria.
+    def __convex_hulls(input_contours):
+        """Computes the convex hulls of contours.
         Args:
-            inputs: A list of Lines.
-            min_Lenght: The minimum lenght that will be kept.
-            angle: The minimum and maximum angles in degrees as a list of two numbers.
+            input_contours: A list of numpy.ndarray that each represent a contour.
         Returns:
-            A filtered list of Lines.
+            A list of numpy.ndarray that each represent a contour.
         """
-        outputs = []
-        for line in inputs:
-            if (line.length() > min_length):
-                if ((line.angle() >= angle[0] and line.angle() <= angle[1]) or
-                        (line.angle() + 180.0 >= angle[0] and line.angle() + 180.0 <= angle[1])):
-                    outputs.append(line)
-        return outputs
+        output = []
+        for contour in input_contours:
+            output.append(cv2.convexHull(contour))
+        return output
 
 
 
