@@ -13,7 +13,7 @@ class ContourPipeline:
         """
 
         self.__resize_image_width = 640.0
-        self.__resize_image_height = 360.0
+        self.__resize_image_height = 480.0
         self.__resize_image_interpolation = cv2.INTER_CUBIC
 
         self.resize_image_output = None
@@ -73,7 +73,7 @@ class ContourPipeline:
         # Step Convex_Hulls0:
         self.__convex_hulls_contours = self.filter_contours_output
         (self.convex_hulls_output) = self.__convex_hulls(self.__convex_hulls_contours)
-
+        return self.convex_hulls_output
 
     @staticmethod
     def __resize_image(input, width, height, interpolation):
