@@ -1,11 +1,13 @@
-Assumes Raspbian Jesse
-Based on instructions at: 
-http://www.pyimagesearch.com/2016/04/18/install-guide-raspberry-pi-3-raspbian-jessie-opencv-3/
+----- Assumes Raspbian Jesse
+----- Based on instructions at: 
+----- http://www.pyimagesearch.com/2016/04/18/install-guide-raspberry-pi-3-raspbian-jessie-opencv-3/
 
-Differences:
-- does not use python virtual environments
-- updated paths to use master OpenCV Branch
-- noted fix for CMake failing with modules folder being seen twice
+----- Differences:
+----- - does not use python virtual environments
+----- - updated paths to use master OpenCV Branch
+----- - noted fix for CMake failing with modules folder being seen twice
+
+
 
 
 sudo apt-get update
@@ -36,8 +38,11 @@ cd ~/opencv
 wget -O opencv.zip https://github.com/opencv/opencv/archive/master.zip
 unzip opencv.zip
 
-Comment out these lines in opencv-master/modules/CMakeLists.txt
-If you skip this, you'll get an error in cmake about modules folder being seen twice
+
+-----
+----- Comment out these lines in opencv-master/modules/CMakeLists.txt
+----- If you skip this, you'll get an error in cmake about modules folder being seen twice
+----
 
 #if(NOT OPENCV_MODULES_PATH)
 #  set(OPENCV_MODULES_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -53,7 +58,7 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
     -D BUILD_EXAMPLES=ON ~/opencv/opencv-master
 
 make -j4
- (If that errors.. make clean, and then make)
+-----  (If that errors.. make clean, and then make)
 
 
 sudo make install
@@ -63,5 +68,5 @@ cd /usr/local/lib/python3.4/site-packages/
 sudo mv cv2.cpython-34m.so cv2.so
 
 
-#clean up...
+----- clean up
 rm -rf ~/opencv
