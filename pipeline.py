@@ -12,21 +12,21 @@ class ContourPipeline:
         """initializes all values to presets or None if need to be set
         """
 
-        self.__resize_image_width = 640.0
-        self.__resize_image_height = 480.0
+        self.__resize_image_width = 1640.0
+        self.__resize_image_height = 1232.0
         self.__resize_image_interpolation = cv2.INTER_CUBIC
 
         self.resize_image_output = None
 
         self.__hsv_threshold_input = self.resize_image_output
-        self.__hsv_threshold_hue = [56.6546762589928, 144.2048876640324]
-        self.__hsv_threshold_saturation = [94.01978417266187, 255.0]
-        self.__hsv_threshold_value = [112.85310734463278, 255.0]
+        self.__hsv_threshold_hue = [74.0, 110.0]
+        self.__hsv_threshold_saturation = [90, 255.0]
+        self.__hsv_threshold_value = [160.0, 255.0]
 
         self.hsv_threshold_output = None
 
         self.__find_contours_input = self.hsv_threshold_output
-        self.__find_contours_external_only = False
+        self.__find_contours_external_only = True
 
         self.find_contours_output = None
 
@@ -38,7 +38,7 @@ class ContourPipeline:
         self.__filter_contours_min_height = 0
         self.__filter_contours_max_height = 1000
         self.__filter_contours_solidity = [0, 100]
-        self.__filter_contours_max_vertices = 30.0
+        self.__filter_contours_max_vertices = 200.0
         self.__filter_contours_min_vertices = 0
         self.__filter_contours_min_ratio = 0
         self.__filter_contours_max_ratio = 1000
@@ -55,11 +55,11 @@ class ContourPipeline:
         Runs the pipeline and sets all outputs to new values.
         """
         # Step Resize_Image0:
-        self.__resize_image_input = source0
-        (self.resize_image_output) = self.__resize_image(self.__resize_image_input, self.__resize_image_width, self.__resize_image_height, self.__resize_image_interpolation)
+        #self.__resize_image_input = source0
+        #(self.resize_image_output) = self.__resize_image(self.__resize_image_input, self.__resize_image_width, self.__resize_image_height, self.__resize_image_interpolation)
 
         # Step HSV_Threshold0:
-        self.__hsv_threshold_input = self.resize_image_output
+        self.__hsv_threshold_input = source0
         (self.hsv_threshold_output) = self.__hsv_threshold(self.__hsv_threshold_input, self.__hsv_threshold_hue, self.__hsv_threshold_saturation, self.__hsv_threshold_value)
 
         # Step Find_Contours0:
