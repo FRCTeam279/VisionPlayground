@@ -19,9 +19,9 @@ class ContourPipeline:
         self.resize_image_output = None
 
         self.__hsv_threshold_input = self.resize_image_output
-        self.__hsv_threshold_hue = [74.0, 110.0]
-        self.__hsv_threshold_saturation = [90, 255.0]
-        self.__hsv_threshold_value = [160.0, 255.0]
+        self.__hsv_threshold_hue = [82.0, 121.0]
+        self.__hsv_threshold_saturation = [124.0, 255.0]
+        self.__hsv_threshold_value = [146.0, 255.0]
 
         self.hsv_threshold_output = None
 
