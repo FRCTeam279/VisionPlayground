@@ -4,6 +4,7 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 from PIL import Image as PImage
 from datetime import datetime
+from datetime import timedelta
 import time
 import numpy as np
 import cv2
@@ -27,10 +28,18 @@ def getDFromH(height):
 def getDFromWt(widthTotal):
 	return 5745.771277*(math.pow(float(widthTotal),-0.895025))
 
+start_time = datetime.now()
+
+def millis():
+	dt = datetime.now() - start_time
+	ms = (dt.days * 24 * 60 * 60 + dt.seconds) * 1000 + dt.microseconds / 1000.0
+	return ms
+
 vis = ContourPipeline()
 camera = PiCamera()
-
+lastTime = -1
 while True:
+	currentMillis = lambda: int(round(time.time() * 1000))
 	imgArray = PiRGBArray(camera, size=(1640, 1232))
 	camera.resolution = (1640, 1232)
 	camera.capture(imgArray, format="bgr", use_video_port=True)
@@ -109,15 +118,23 @@ while True:
 				print("error")
 			if leftDist < rightDist:
 				angle *= -1
-			
+			lastTime = millis()
 			res = nt.putValue("angle", angle)
 			res1 = nt.putValue("distance", middleDist)
 			res2 = nt.putValue("eyes", True)
-			#res3 = nt.putValue("lastTimeDetected", datetime.now().time())
+			res3 = nt.putValue("lastTimeDetected", 0)
 			res4 = nt.putValue("pixelOffset", pixelOffset)
 		else:
+			lastTime = millis()
 			res = nt.putValue("angle", 0)
 			res1 = nt.putValue("distance", middleDist)
 			res2 = nt.putValue("eyes", True)
-			#res3 = nt.putValue("lastTimeDetected", datetime.now().time())
+			res3 = nt.putValue("lastTimeDetected", 0)
 			res4 = nt.putValue("pixelOffset", pixelOffset)
+	else:
+		if lastTime == -1:
+			timeSinceLast = -1
+		else:
+			timeSinceLast = millis() - lastTime
+		res2 = nt.putValue("eyes", False)
+		res3 = nt.putValue("lastTimeDetected", timeSinceLast)
