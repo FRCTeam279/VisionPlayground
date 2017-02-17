@@ -4,5 +4,5 @@
 
 cd /
 cd home/pi/VisionPlayground
-python3 autoDetect.py
+python3 gearDetect.py
 cd /
