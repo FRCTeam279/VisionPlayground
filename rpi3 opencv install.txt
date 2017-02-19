@@ -70,3 +70,12 @@ sudo mv cv2.cpython-34m.so cv2.so
 
 ----- clean up
 rm -rf ~/opencv
+
+
+
+sudo pip install pillow
+(if necessary upgrade.. pip install pillow --upgrade)
+
+pip3 install imutils
+
+
